@@ -11,6 +11,7 @@ from livekit.agents import (
     MetricsCollectedEvent,
     RunContext,
     cli,
+    get_job_context,
     metrics,
     room_io,
 )
@@ -58,6 +59,11 @@ class MyAgent(Agent):
             longitude: The longitude of the location, do not ask user for it
         """
 
+        try:
+            job_context = get_job_context()
+            logger.info(f"Job context: {job_context}")
+        except Exception as e:
+            logger.error(f"Error getting job context: {e}")
         logger.info(f"Looking up weather for {location}")
 
         return "sunny with a temperature of 70 degrees."
