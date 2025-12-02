@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Text Streaming Demo</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #2d2d3a;
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%);
+        }
+
+        header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+            gap: 1.5rem;
+        }
+
+        .messages {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .message {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: var(--accent);
+            color: white;
+            align-self: flex-end;
+            max-width: 80%;
+        }
+
+        .message.assistant {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            align-self: flex-start;
+            max-width: 80%;
+        }
+
+        .message.system {
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-align: center;
+            align-self: center;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .message .label {
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            opacity: 0.7;
+        }
+
+        .message .content {
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .streaming-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--accent);
+            margin-left: 2px;
+            animation: blink 0.8s infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .events-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .events-panel summary {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .events-list {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .event {
+            background: var(--bg-tertiary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        .event-type {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9375rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--text-secondary);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 1rem 2rem;
+            font-family: inherit;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .quick-prompts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .quick-prompt {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .quick-prompt:hover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🚀 WebSocket Text Streaming</h1>
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Disconnected</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="quick-prompts">
+            <button class="quick-prompt" onclick="sendQuickPrompt('What is the weather in San Francisco?')">
+                🌤️ Weather in SF
+            </button>
+            <button class="quick-prompt" onclick="sendQuickPrompt('Tell me about the weather in Tokyo')">
+                🗼 Weather in Tokyo
+            </button>
+            <button class="quick-prompt" onclick="sendQuickPrompt('How is the weather in London today?')">
+                🇬🇧 Weather in London
+            </button>
+        </div>
+
+        <div class="messages" id="messages">
+            <div class="message system">
+                <div class="content">Connecting to server...</div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Type a message..." 
+                disabled
+                onkeypress="handleKeyPress(event)"
+            >
+            <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+        </div>
+    </main>
+
+    <script>
+        let ws = null;
+        let currentStreamingMessage = null;
+
+        function connect() {
+            ws = new WebSocket('ws://localhost:8765');
+
+            ws.onopen = () => {
+                updateStatus(true);
+            };
+
+            ws.onclose = () => {
+                updateStatus(false);
+                addSystemMessage('Disconnected from server. Reconnecting in 3s...');
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addErrorMessage('Connection error. Make sure the server is running.');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+        }
+
+        function updateStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const input = document.getElementById('messageInput');
+            const button = document.getElementById('sendButton');
+
+            if (connected) {
+                dot.classList.add('connected');
+                text.textContent = 'Connected';
+                input.disabled = false;
+                button.disabled = false;
+                input.focus();
+            } else {
+                dot.classList.remove('connected');
+                text.textContent = 'Disconnected';
+                input.disabled = true;
+                button.disabled = true;
+            }
+        }
+
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'ready':
+                    addSystemMessage(data.message);
+                    break;
+
+                case 'delta':
+                    if (!currentStreamingMessage) {
+                        currentStreamingMessage = createStreamingMessage();
+                    }
+                    updateStreamingMessage(data.accumulated);
+                    break;
+
+                case 'complete':
+                    if (currentStreamingMessage) {
+                        finalizeStreamingMessage(data.text);
+                        currentStreamingMessage = null;
+                    }
+                    break;
+
+                case 'result':
+                    if (data.events && data.events.length > 0) {
+                        addEventsPanel(data.events);
+                    }
+                    break;
+
+                case 'error':
+                    addErrorMessage(data.message);
+                    break;
+            }
+        }
+
+        function createStreamingMessage() {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'message assistant';
+            div.innerHTML = `
+                <div class="label">Assistant</div>
+                <div class="content"><span class="text"></span><span class="streaming-cursor"></span></div>
+            `;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+            return div;
+        }
+
+        function updateStreamingMessage(text) {
+            if (currentStreamingMessage) {
+                const textSpan = currentStreamingMessage.querySelector('.text');
+                textSpan.textContent = text;
+                const messages = document.getElementById('messages');
+                messages.scrollTop = messages.scrollHeight;
+            }
+        }
+
+        function finalizeStreamingMessage(text) {
+            if (currentStreamingMessage) {
+                const content = currentStreamingMessage.querySelector('.content');
+                content.innerHTML = text;
+            }
+        }
+
+        function addEventsPanel(events) {
+            const messages = document.getElementById('messages');
+            const details = document.createElement('details');
+            details.className = 'events-panel';
+            
+            const hasFunctionCalls = events.some(e => e.type === 'function_call');
+            
+            details.innerHTML = `
+                <summary>📋 Run Events (${events.length})</summary>
+                <div class="events-list">
+                    ${events.map(e => `
+                        <div class="event">
+                            <span class="event-type">${e.type}</span>
+                            ${e.type === 'function_call' ? `: ${e.name}(${e.arguments})` : ''}
+                            ${e.type === 'function_call_output' ? `: ${e.output}` : ''}
+                            ${e.type === 'message' ? `: [${e.role}]` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            messages.appendChild(details);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'message system';
+            div.innerHTML = `<div class="content">${text}</div>`;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function addErrorMessage(text) {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'message error';
+            div.innerHTML = `<div class="content">⚠️ ${text}</div>`;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function addUserMessage(text) {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'message user';
+            div.innerHTML = `
+                <div class="label">You</div>
+                <div class="content">${text}</div>
+            `;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message && ws && ws.readyState === WebSocket.OPEN) {
+                addUserMessage(message);
+                ws.send(JSON.stringify({ message }));
+                input.value = '';
+            }
+        }
+
+        function sendQuickPrompt(prompt) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                addUserMessage(prompt);
+                ws.send(JSON.stringify({ message: prompt }));
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Start connection when page loads
+        connect();
+    </script>
+</body>
+</html>
+
