@@ -7,9 +7,9 @@ any WebSocket-based LLM backend.
 
 Usage:
     from ws_llm_provider import WebSocketLLM
-    
+
     llm = WebSocketLLM(ws_url="ws://localhost:8765")
-    
+
     # Use with AgentSession
     session = AgentSession(llm=llm, ...)
 """
@@ -37,6 +37,7 @@ from livekit.agents.types import (
 @dataclass
 class WebSocketLLMOptions:
     """Configuration options for WebSocket LLM."""
+
     ws_url: str
     model_name: str
 
@@ -44,10 +45,10 @@ class WebSocketLLMOptions:
 class WebSocketLLM(llm.LLM):
     """
     Custom LLM implementation that connects to a WebSocket server.
-    
+
     This allows LiveKit Agents to use any WebSocket-based LLM backend
     instead of standard providers like OpenAI.
-    
+
     Args:
         ws_url: WebSocket server URL (e.g., "ws://localhost:8765")
         model_name: Optional model name identifier for metrics/logging
@@ -87,7 +88,7 @@ class WebSocketLLM(llm.LLM):
     ) -> llm.LLMStream:
         """
         Create a new chat completion stream.
-        
+
         Args:
             chat_ctx: The chat context containing conversation history
             tools: Not supported in this PoC
@@ -95,7 +96,7 @@ class WebSocketLLM(llm.LLM):
             parallel_tool_calls: Not supported in this PoC
             tool_choice: Not supported in this PoC
             extra_kwargs: Additional arguments (ignored)
-            
+
         Returns:
             WebSocketLLMStream instance for streaming responses
         """
@@ -111,7 +112,7 @@ class WebSocketLLM(llm.LLM):
 class WebSocketLLMStream(llm.LLMStream):
     """
     Streaming implementation that connects to WebSocket LLM server.
-    
+
     This class handles the actual communication with the WebSocket server
     and converts responses into ChatChunk events.
     """
@@ -132,7 +133,7 @@ class WebSocketLLMStream(llm.LLMStream):
     async def _run(self) -> None:
         """
         Execute the LLM request via WebSocket.
-        
+
         This method:
         1. Converts ChatContext to WebSocket message format
         2. Sends request to WebSocket server
@@ -182,10 +183,10 @@ class WebSocketLLMStream(llm.LLMStream):
     def _chat_ctx_to_messages(self, chat_ctx: ChatContext) -> list[dict[str, str]]:
         """
         Convert ChatContext to simple message format for WebSocket protocol.
-        
+
         Args:
             chat_ctx: LiveKit ChatContext with conversation history
-            
+
         Returns:
             List of message dicts with 'role' and 'content' keys
         """
@@ -196,10 +197,11 @@ class WebSocketLLMStream(llm.LLMStream):
                 # Extract text content from the message
                 text_content = item.text_content
                 if text_content:
-                    messages.append({
-                        "role": item.role,
-                        "content": text_content,
-                    })
+                    messages.append(
+                        {
+                            "role": item.role,
+                            "content": text_content,
+                        }
+                    )
 
         return messages
-

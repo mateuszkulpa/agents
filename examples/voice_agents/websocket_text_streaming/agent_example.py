@@ -8,7 +8,7 @@ instead of using standard providers like OpenAI.
 Prerequisites:
     1. Start the WebSocket LLM server:
        uv run ws_llm_server.py
-       
+
     2. Run this agent:
        uv run agent_example.py dev
 
@@ -51,7 +51,6 @@ class HealthcareAgent(Agent):
         super().__init__(
             instructions="",
         )
-
 
 
 # Create the agent server
@@ -118,4 +117,3 @@ async def entrypoint(ctx: JobContext):
 
 if __name__ == "__main__":
     cli.run_app(server)
-

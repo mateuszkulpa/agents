@@ -111,10 +111,7 @@ class HealthcareLLMServer:
             # Add new messages to conversation history
             for msg in messages:
                 if msg.get("role") and msg.get("content"):
-                    conversation_history.append({
-                        "role": msg["role"],
-                        "content": msg["content"]
-                    })
+                    conversation_history.append({"role": msg["role"], "content": msg["content"]})
 
             # Generate streaming response
             await self._generate_streaming_response(websocket, conversation_history)
@@ -122,14 +119,10 @@ class HealthcareLLMServer:
         elif msg_type == "reset":
             # Reset conversation history (keep system prompt)
             conversation_history.clear()
-            conversation_history.append({
-                "role": "system",
-                "content": HEALTHCARE_SYSTEM_PROMPT
-            })
-            await websocket.send(json.dumps({
-                "type": "reset_complete",
-                "message": "Conversation history cleared"
-            }))
+            conversation_history.append({"role": "system", "content": HEALTHCARE_SYSTEM_PROMPT})
+            await websocket.send(
+                json.dumps({"type": "reset_complete", "message": "Conversation history cleared"})
+            )
 
         else:
             await self._send_error(websocket, f"Unknown message type: {msg_type}")
@@ -155,22 +148,13 @@ class HealthcareLLMServer:
                     full_response += content
 
                     # Send delta to client
-                    await websocket.send(json.dumps({
-                        "type": "delta",
-                        "content": content
-                    }))
+                    await websocket.send(json.dumps({"type": "delta", "content": content}))
 
             # Send complete message
-            await websocket.send(json.dumps({
-                "type": "complete",
-                "content": full_response
-            }))
+            await websocket.send(json.dumps({"type": "complete", "content": full_response}))
 
             # Add assistant response to conversation history
-            conversation_history.append({
-                "role": "assistant",
-                "content": full_response
-            })
+            conversation_history.append({"role": "assistant", "content": full_response})
 
         except openai.APIError as e:
             logger.error(f"OpenAI API error: {e}")
@@ -178,10 +162,7 @@ class HealthcareLLMServer:
 
     async def _send_error(self, websocket: ServerConnection, message: str) -> None:
         """Send error message to client."""
-        await websocket.send(json.dumps({
-            "type": "error",
-            "message": message
-        }))
+        await websocket.send(json.dumps({"type": "error", "message": message}))
 
     async def start(self) -> None:
         """Start the WebSocket server."""
@@ -209,4 +190,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
