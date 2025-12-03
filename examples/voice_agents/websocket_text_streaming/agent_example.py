@@ -49,19 +49,9 @@ class HealthcareAgent(Agent):
 
     def __init__(self) -> None:
         super().__init__(
-            instructions=(
-                "You are a healthcare assistant. Help users with health-related questions. "
-                "Keep responses concise and suitable for voice interaction. "
-                "Do not use markdown, emojis, or special formatting in responses."
-            ),
+            instructions="",
         )
 
-    async def on_enter(self):
-        """Called when the agent starts - generate initial greeting."""
-        self.session.generate_reply(
-            instructions="Greet the user and introduce yourself as a healthcare assistant. "
-            "Ask how you can help them today. Keep it brief."
-        )
 
 
 # Create the agent server
