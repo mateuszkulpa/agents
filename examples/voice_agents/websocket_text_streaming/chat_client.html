@@ -491,7 +491,23 @@
                 case 'error':
                     handleError(data.message);
                     break;
+                case 'symptoms_collected':
+                    handleSymptomsCollected(data.symptoms);
+                    break;
             }
+        }
+
+        // Handle symptoms collected event
+        function handleSymptomsCollected(symptoms) {
+            console.log('Symptoms collected:', symptoms);
+            
+            // You can customize how symptoms are displayed
+            // For now, we'll show them in the console and optionally display in chat
+            const symptomsSummary = symptoms.map(s => `${s.name}: ${s.choice_id}`).join(', ');
+            console.log('Symptoms summary:', symptomsSummary);
+            
+            // Optionally dispatch a custom event for external listeners
+            window.dispatchEvent(new CustomEvent('symptomsCollected', { detail: symptoms }));
         }
 
         // Handle streaming delta
