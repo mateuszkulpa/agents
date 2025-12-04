@@ -17,13 +17,14 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Any
 
 from websockets.asyncio.client import connect
 
-from livekit.agents import llm
+from livekit.agents import get_job_context, llm
 from livekit.agents.llm import ChatChunk, ChatContext, ChoiceDelta
 from livekit.agents.llm.tool_context import FunctionTool, RawFunctionTool
 from livekit.agents.types import (
@@ -32,6 +33,8 @@ from livekit.agents.types import (
     APIConnectOptions,
     NotGivenOr,
 )
+
+logger = logging.getLogger("ws-llm-provider")
 
 
 @dataclass
@@ -170,6 +173,13 @@ class WebSocketLLMStream(llm.LLMStream):
                     )
                     self._event_ch.send_nowait(chunk)
                     first_chunk = False
+
+                elif msg_type == "symptoms_collected":
+                    symptoms = data.get("symptoms", [])
+                    logger.info(f"Symptoms collected: {symptoms}")
+                    job_context = get_job_context()
+                    # NOTE: send collected symptoms to participant - it can be used to display on the screen
+                    await job_context.room.local_participant.send_text(json.dumps(symptoms))
 
                 elif msg_type == "complete":
                     # Stream is complete, break the loop

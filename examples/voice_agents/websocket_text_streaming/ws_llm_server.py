@@ -40,9 +40,7 @@ logger = logging.getLogger("ws-llm-server")
 class Symptom(BaseModel):
     """A single symptom with its status."""
 
-    name: str = Field(
-        description="Name of the symptom (e.g., 'headache', 'fever', 'cough')"
-    )
+    name: str = Field(description="Name of the symptom (e.g., 'headache', 'fever', 'cough')")
     choice_id: Literal["present", "absent", "unknown"] = Field(
         description="Status of the symptom: 'present' if user has it, 'absent' if user confirmed they don't have it, 'unknown' if not discussed or unclear"
     )
@@ -51,9 +49,7 @@ class Symptom(BaseModel):
 class CollectSymptomsArgs(BaseModel):
     """Arguments for the collect_symptoms function."""
 
-    symptoms: list[Symptom] = Field(
-        description="List of symptoms collected from the user"
-    )
+    symptoms: list[Symptom] = Field(description="List of symptoms collected from the user")
 
 
 def build_collect_symptoms_tool() -> dict[str, Any]:
@@ -215,7 +211,9 @@ class HealthcareLLMServer:
                                 tool_calls[idx]["name"] = tool_call.function.name
                                 logger.debug(f"Tool call {idx} name: {tool_call.function.name}")
                             if tool_call.function.arguments:
-                                logger.debug(f"Tool call {idx} args chunk: {tool_call.function.arguments!r}")
+                                logger.debug(
+                                    f"Tool call {idx} args chunk: {tool_call.function.arguments!r}"
+                                )
                                 tool_calls[idx]["arguments"] += tool_call.function.arguments
 
             # Process any tool calls
